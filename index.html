@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solar Panel Monitoring</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        
+        .datetime-display {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .date-box, .time-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px 30px;
+            border-radius: 15px;
+            color: white;
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            min-width: 250px;
+        }
+
+        .date-icon, .time-icon {
+            font-size: 2.5em;
+        }
+
+        .date-label, .time-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .date-value, .time-value {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(17, 153, 142, 0.4);
+        }
+        
+        .status {
+            text-align: center;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        
+        .status.loading {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            border-radius: 15px;
+            color: white;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card h3 {
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+        
+        .card .value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .card .unit {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+        
+        .card.irradiasi {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .card.voltage {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        
+        .card.current {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+        
+        .card.power {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+        
+        .card.pmax {
+            background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+        }
+        
+        .card.temperature {
+            background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
+        }
+        
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .chart-container {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .chart-container h2 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 1.3em;
+        }
+        
+        .chart-container canvas {
+            max-height: 350px;
+        }
+        
+        select {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border 0.3s;
+        }
+        
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .data-info {
+            text-align: center;
+            color: #666;
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+        
+        .last-update {
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .cards {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>☀️ Solar Panel Monitoring</h1>
+        <p class="subtitle">Real-time monitoring sistem irradiasi matahari</p>
+        <div class="datetime-display">
+            <div class="date-box">
+                <div class="date-icon">📅</div>
+                <div>
+                    <div class="date-label">Tanggal</div>
+                    <div class="date-value" id="currentDate">-</div>
+                </div>
+            </div>
+            <div class="time-box">
+                <div class="time-icon">🕒</div>
+                <div>
+                    <div class="time-label">Waktu</div>
+                    <div class="time-value" id="currentTime">-</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button class="btn btn-primary" onclick="loadData()">
+                🔄 Refresh Data
+            </button>
+            <button class="btn btn-success" onclick="downloadExcel()">
+                📥 Download Excel
+            </button>
+            <select id="daysFilter" onchange="loadData()">
+                <option value="1">Hari Ini</option>
+                <option value="7">7 Hari Terakhir</option>
+                <option value="30">30 Hari Terakhir</option>
+                <option value="all">Semua Data</option>
+            </select>
+        </div>
+        
+        <div id="status" class="status loading">Memuat data...</div>
+        
+        <div class="cards">
+            <div class="card irradiasi">
+                <h3>Irradiasi</h3>
+                <div class="value" id="irradiasiValue">-</div>
+                <div class="unit">W/m²</div>
+            </div>
+            <div class="card voltage">
+                <h3>Tegangan</h3>
+                <div class="value" id="voltageValue">-</div>
+                <div class="unit">Volt</div>
+            </div>
+            <div class="card current">
+                <h3>Arus</h3>
+                <div class="value" id="currentValue">-</div>
+                <div class="unit">Ampere</div>
+            </div>
+            <div class="card power">
+                <h3>Daya</h3>
+                <div class="value" id="powerValue">-</div>
+                <div class="unit">Watt</div>
+            </div>
+            <div class="card pmax">
+                <h3>Pmax</h3>
+                <div class="value" id="pmaxValue">-</div>
+                <div class="unit">Watt</div>
+            </div>
+            <div class="card temperature">
+                <h3>Suhu</h3>
+                <div class="value" id="temperatureValue">-</div>
+                <div class="unit">°C</div>
+            </div>
+        </div>
+        
+        <div class="charts-grid">
+            <div class="chart-container">
+                <h2>📈 Grafik Irradiasi vs Waktu</h2>
+                <canvas id="irradiasiChart"></canvas>
+            </div>
+            
+            <div class="chart-container">
+                <h2>⚡ Grafik Pmax vs Waktu</h2>
+                <canvas id="pmaxChart"></canvas>
+            </div>
+            
+            <div class="chart-container">
+                <h2>🔋 Grafik I-V (Daya)</h2>
+                <canvas id="ivChart"></canvas>
+            </div>
+            
+            <div class="chart-container">
+                <h2>🌡️ Grafik Suhu vs Waktu</h2>
+                <canvas id="temperatureChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="data-info" id="dataInfo">Total data: 0</div>
+        <div class="last-update" id="lastUpdate">Terakhir diperbarui: -</div>
+    </div>
+
+    <script>
+        // URL Google Apps Script
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz1NVmQRvwa-PCw9ioup-BnLymMXT2A-bkLwikETr2M-qYSj3vh8wp6EauP5gs_zkal/exec';
+        
+        let allData = [];
+        let charts = {
+            irradiasi: null,
+            pmax: null,
+            iv: null,
+            temperature: null
+        };
+        
+        window.onload = function() {
+            updateDateTime();
+            loadData();
+            setInterval(loadData, 300000);
+            setInterval(updateDateTime, 1000);
+        };
+
+        function updateDateTime() {
+            const now = new Date();
+            const dateOptions = { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            };
+            const dateStr = now.toLocaleDateString('id-ID', dateOptions);
+            document.getElementById('currentDate').textContent = dateStr;
+            const timeStr = now.toLocaleTimeString('id-ID');
+            document.getElementById('currentTime').textContent = timeStr;
+        }
+        
+        async function loadData() {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = 'status loading';
+            statusDiv.textContent = '⏳ Memuat data dari cloud...';
+            
+            try {
+                const response = await fetch(GOOGLE_SCRIPT_URL);
+                const data = await response.json();
+                
+                allData = data;
+                
+                if (data.length === 0) {
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = '❌ Tidak ada data. Pastikan ESP32 sudah mengirim data.';
+                    return;
+                }
+                
+                const filteredData = filterDataByDays(data);
+                updateCards(filteredData[filteredData.length - 1]);
+                updateCharts(filteredData);
+                
+                document.getElementById('dataInfo').textContent = 
+                    `Total data: ${filteredData.length} record`;
+                document.getElementById('lastUpdate').textContent = 
+                    `Terakhir diperbarui: ${new Date().toLocaleString('id-ID')}`;
+                
+                statusDiv.className = 'status success';
+                statusDiv.textContent = `✅ Data berhasil dimuat! (${filteredData.length} record)`;
+                
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Error: ' + error.message;
+                console.error('Error:', error);
+            }
+        }
+        
+        function filterDataByDays(data) {
+            const daysFilter = document.getElementById('daysFilter').value;
+            if (daysFilter === 'all') return data;
+            
+            const days = parseInt(daysFilter);
+            const cutoffDate = new Date();
+            cutoffDate.setDate(cutoffDate.getDate() - days);
+            
+            return data.filter(item => {
+                const itemDate = new Date(item.Timestamp);
+                return itemDate >= cutoffDate;
+            });
+        }
+        
+        function updateCards(latestData) {
+            if (!latestData) return;
+            
+            document.getElementById('irradiasiValue').textContent = 
+                parseFloat(latestData['Irradiasi (W/m²)'] || 0).toFixed(1);
+            document.getElementById('voltageValue').textContent = 
+                parseFloat(latestData['Voltage (V)'] || 0).toFixed(2);
+            document.getElementById('currentValue').textContent = 
+                parseFloat(latestData['Current (A)'] || 0).toFixed(3);
+            document.getElementById('powerValue').textContent = 
+                parseFloat(latestData['Power (W)'] || 0).toFixed(2);
+            document.getElementById('pmaxValue').textContent = 
+                parseFloat(latestData['Pmax (W)'] || 0).toFixed(2);
+            document.getElementById('temperatureValue').textContent = 
+                parseFloat(latestData['Temperature (°C)'] || 0).toFixed(1);
+        }
+        
+        function updateCharts(data) {
+            const timeLabels = data.map(item => {
+                const date = new Date(item.Timestamp);
+                return date.toLocaleTimeString('id-ID', { 
+                    hour: '2-digit', 
+                    minute: '2-digit'
+                });
+            });
+            
+            const irradiasiData = data.map(item => parseFloat(item['Irradiasi (W/m²)'] || 0));
+            const voltageData = data.map(item => parseFloat(item['Voltage (V)'] || 0));
+            const currentData = data.map(item => parseFloat(item['Current (A)'] || 0));
+            const pmaxData = data.map(item => parseFloat(item['Pmax (W)'] || 0));
+            const temperatureData = data.map(item => parseFloat(item['Temperature (°C)'] || 0));
+            
+            Object.values(charts).forEach(chart => {
+                if (chart) chart.destroy();
+            });
+            
+            const ctx1 = document.getElementById('irradiasiChart').getContext('2d');
+            charts.irradiasi = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: timeLabels,
+                    datasets: [{
+                        label: 'Irradiasi (W/m²)',
+                        data: irradiasiData,
+                        borderColor: '#f5576c',
+                        backgroundColor: 'rgba(245, 87, 108, 0.2)',
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 4,
+                        pointHoverRadius: 7,
+                        borderWidth: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { display: true, position: 'top' }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Irradiasi (W/m²)', font: { size: 14, weight: 'bold' } }
+                        },
+                        x: {
+                            title: { display: true, text: 'Waktu (Jam)', font: { size: 14, weight: 'bold' } },
+                            ticks: { maxRotation: 45, minRotation: 45 }
+                        }
+                    }
+                }
+            });
+            
+            const ctx2 = document.getElementById('pmaxChart').getContext('2d');
+            charts.pmax = new Chart(ctx2, {
+                type: 'line',
+                data: {
+                    labels: timeLabels,
+                    datasets: [{
+                        label: 'Pmax (W)',
+                        data: pmaxData,
+                        borderColor: '#30cfd0',
+                        backgroundColor: 'rgba(48, 207, 208, 0.2)',
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 4,
+                        pointHoverRadius: 7,
+                        borderWidth: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { display: true, position: 'top' }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Pmax (W)', font: { size: 14, weight: 'bold' } }
+                        },
+                        x: {
+                            title: { display: true, text: 'Waktu (Jam)', font: { size: 14, weight: 'bold' } },
+                            ticks: { maxRotation: 45, minRotation: 45 }
+                        }
+                    }
+                }
+            });
+            
+            const ctx3 = document.getElementById('ivChart').getContext('2d');
+            const scatterData = data.map(item => ({
+                x: parseFloat(item['Voltage (V)'] || 0),
+                y: parseFloat(item['Current (A)'] || 0),
+                power: parseFloat(item['Power (W)'] || 0)
+            }));
+            
+            charts.iv = new Chart(ctx3, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'I-V Curve',
+                        data: scatterData,
+                        backgroundColor: 'rgba(250, 112, 154, 0.6)',
+                        borderColor: '#fa709a',
+                        pointRadius: 6,
+                        pointHoverRadius: 9,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { display: true, position: 'top' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return [
+                                        `Tegangan: ${context.parsed.x.toFixed(2)} V`,
+                                        `Arus: ${context.parsed.y.toFixed(3)} A`,
+                                        `Daya: ${context.raw.power.toFixed(2)} W`
+                                    ];
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Arus (A)', font: { size: 14, weight: 'bold' } }
+                        },
+                        x: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Tegangan (V)', font: { size: 14, weight: 'bold' } }
+                        }
+                    }
+                }
+            });
+            
+            const ctx4 = document.getElementById('temperatureChart').getContext('2d');
+            charts.temperature = new Chart(ctx4, {
+                type: 'line',
+                data: {
+                    labels: timeLabels,
+                    datasets: [{
+                        label: 'Suhu (°C)',
+                        data: temperatureData,
+                        borderColor: '#ff6b6b',
+                        backgroundColor: 'rgba(255, 107, 107, 0.2)',
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 4,
+                        pointHoverRadius: 7,
+                        borderWidth: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { display: true, position: 'top' }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Suhu (°C)', font: { size: 14, weight: 'bold' } }
+                        },
+                        x: {
+                            title: { display: true, text: 'Waktu (Jam)', font: { size: 14, weight: 'bold' } },
+                            ticks: { maxRotation: 45, minRotation: 45 }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function downloadExcel() {
+            if (allData.length === 0) {
+                alert('Tidak ada data untuk diunduh!');
+                return;
+            }
+            
+            const filteredData = filterDataByDays(allData);
+            const excelData = filteredData.map(item => ({
+                'Tanggal': new Date(item.Timestamp).toLocaleString('id-ID'),
+                'Irradiasi (W/m²)': parseFloat(item['Irradiasi (W/m²)']).toFixed(2),
+                'Voltage (V)': parseFloat(item['Voltage (V)']).toFixed(2),
+                'Current (A)': parseFloat(item['Current (A)']).toFixed(3),
+                'Power (W)': parseFloat(item['Power (W)']).toFixed(2),
+                'Pmax (W)': parseFloat(item['Pmax (W)']).toFixed(2),
+                'Temperature (°C)': parseFloat(item['Temperature (°C)']).toFixed(2)
+            }));
+            
+            const ws = XLSX.utils.json_to_sheet(excelData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Solar Data");
+            
+            const fileName = `Solar_Data_${new Date().toISOString().split('T')[0]}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+            
+            alert(`✅ File ${fileName} berhasil diunduh!`);
+        }
+    </script>
+</body>
+</html>
